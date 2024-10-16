@@ -1,39 +1,44 @@
 // eslint-disable-next-line no-unused-vars
 import React from 'react';
+import { PresaleProvider } from './contexts/PresaleContext';
 import Header from './components/Header';
 import PresaleCountdown from './components/PresaleCountdown';
 import PresaleInfo from './components/PresaleInfo';
 import PresaleForm from './components/PresaleForm';
+import ClaimWithdrawSection from './components/ClaimWithdrawSection';
 import Footer from './components/Footer';
 
 function App() {
     return (
-        <div className="min-h-screen bg-gray-800 flex flex-col">
-            <Header />
-            <div className="flex-grow">
-                <div className="w-full max-w-6xl mx-auto">
-                    <main className="bg-gray-800 overflow-hidden">
-                        <h1 className="text-3xl lg:text-4xl font-bold text-center text-white py-8">
+        <PresaleProvider>
+            <div className="min-h-screen flex flex-col bg-gray-800 text-text-primary">
+                <Header />
+                <main className="flex-grow container mx-auto px-4 py-8">
+                    <div className="max-w-6xl mx-auto">
+                        <h1 className="text-4xl md:text-5xl font-bold text-center mb-8 text-primary">
                             CarbonFi Presale
                         </h1>
-                        <div className="grid lg:grid-cols-2 gap-6 lg:gap-8 px-6 lg:px-8 pb-8">
-                            <div className="space-y-6 lg:space-y-8">
-                                <div className="bg-gray-700 rounded-lg overflow-hidden">
+                        <div className="grid md:grid-cols-2 gap-8 mb-8">
+                            <div className="flex flex-col space-y-8">
+                                <div className="bg-background-light rounded-lg shadow-xl overflow-hidden">
                                     <PresaleCountdown />
                                 </div>
-                                <div className="bg-gray-700 rounded-lg overflow-hidden">
+                                <div className="bg-background-light rounded-lg shadow-xl overflow-hidden">
                                     <PresaleInfo />
                                 </div>
                             </div>
-                            <div className="bg-gray-700 rounded-lg overflow-hidden">
+                            <div className="bg-background-light rounded-lg shadow-xl overflow-hidden">
                                 <PresaleForm />
                             </div>
                         </div>
-                    </main>
-                </div>
+                        <div className="mt-8">
+                            <ClaimWithdrawSection />
+                        </div>
+                    </div>
+                </main>
+                <Footer />
             </div>
-            <Footer />
-        </div>
+        </PresaleProvider>
     );
 }
 

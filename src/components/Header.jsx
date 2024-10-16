@@ -24,24 +24,24 @@ function Header() {
     };
 
     return (
-        <header className={`bg-gray-900 text-white w-full ${isSticky ? 'sticky top-0 z-50 shadow-md' : ''}`}>
+        <header className={`bg-background-dark text-text-primary w-full ${isSticky ? 'sticky top-0 z-50 shadow-lg' : ''}`}>
             <div className="max-w-6xl mx-auto px-4">
                 <div className="flex justify-between items-center py-4">
                     <div className="flex items-center">
-                        <img src="/logo.png" alt="CarbonFi Logo" className="h-16 w-48" /> {/* Increased size, maintaining 3:1 ratio */}
+                        <img src="/logo.png" alt="CarbonFi Logo" className="h-16 w-48" />
                     </div>
 
                     {/* Desktop Menu */}
-                    <nav className="hidden md:flex items-center space-x-6"> {/* Increased space between items */}
-                        <a href="#" className="hover:text-green-500 transition-colors">Home</a>
-                        <a href="#" className="hover:text-green-500 transition-colors">About</a>
-                        <a href="#" className="hover:text-green-500 transition-colors">Presale</a>
-                        <a href="#" className="hover:text-green-500 transition-colors">Whitepaper</a>
+                    <nav className="hidden md:flex items-center space-x-8">
+                        <a href="#" className="hover:text-primary transition-colors duration-300">Home</a>
+                        <a href="#" className="hover:text-primary transition-colors duration-300">About</a>
+                        <a href="#" className="hover:text-primary transition-colors duration-300">Presale</a>
+                        <a href="#" className="hover:text-primary transition-colors duration-300">Whitepaper</a>
                         <ConnectWallet />
                     </nav>
 
                     {/* Mobile Menu Button */}
-                    <button className="md:hidden text-white focus:outline-none" onClick={toggleMenu}>
+                    <button className="md:hidden text-text-primary focus:outline-none" onClick={toggleMenu}>
                         {isMenuOpen ? <FaTimes size={24} /> : <FaBars size={24} />}
                     </button>
                 </div>
@@ -49,10 +49,10 @@ function Header() {
                 {/* Mobile Menu Dropdown */}
                 {isMenuOpen && (
                     <nav className="md:hidden py-4 space-y-2">
-                        <a href="#" className="block py-2 hover:bg-gray-700 transition-colors">Home</a>
-                        <a href="#" className="block py-2 hover:bg-gray-700 transition-colors">About</a>
-                        <a href="#" className="block py-2 hover:bg-gray-700 transition-colors">Presale</a>
-                        <a href="#" className="block py-2 hover:bg-gray-700 transition-colors">Whitepaper</a>
+                        <a href="#" className="block py-2 hover:bg-background-light transition-colors duration-300">Home</a>
+                        <a href="#" className="block py-2 hover:bg-background-light transition-colors duration-300">About</a>
+                        <a href="#" className="block py-2 hover:bg-background-light transition-colors duration-300">Presale</a>
+                        <a href="#" className="block py-2 hover:bg-background-light transition-colors duration-300">Whitepaper</a>
                         <div className="py-2">
                             <ConnectWallet />
                         </div>

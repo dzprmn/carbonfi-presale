@@ -1,91 +1,88 @@
 // eslint-disable-next-line no-unused-vars
 import React, { useState, useEffect } from 'react';
-import { getPresaleInfo, getPresaleStatus } from '../utils/contractInteraction';
+import { usePresale } from '../contexts/PresaleContext';
 
 function PresaleCountdown() {
-    const [timeLeft, setTimeLeft] = useState({
-        days: 0,
-        hours: 0,
-        minutes: 0,
-        seconds: 0
-    });
-    const [endTime, setEndTime] = useState(null);
-    const [presaleStatus, setPresaleStatus] = useState('');
-    const [error, setError] = useState(null);
+    const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+    const { presaleData, loading, error } = usePresale();
 
     useEffect(() => {
-        const fetchPresaleInfo = async () => {
-            try {
-                const info = await getPresaleInfo();
-                const status = await getPresaleStatus();
-                setEndTime(parseInt(info.endTime) * 1000); // Convert to milliseconds
-                setPresaleStatus(status);
-            } catch (error) {
-                console.error("Failed to fetch presale info:", error);
-                setError("Failed to fetch presale information. Please try again later.");
-            }
-        };
+        if (presaleData && presaleData.info) {
+            const timer = setInterval(() => {
+                const now = new Date().getTime();
+                const startTime = new Date(presaleData.info.startTime * 1000).getTime();
+                const endTime = new Date(presaleData.info.endTime * 1000).getTime();
 
-        fetchPresaleInfo();
-        const interval = setInterval(fetchPresaleInfo, 60000); // Refresh every minute
-        return () => clearInterval(interval);
-    }, []);
+                let distance;
+                if (now < startTime) {
+                    distance = startTime - now;
+                } else if (now < endTime) {
+                    distance = endTime - now;
+                } else {
+                    clearInterval(timer);
+                    setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+                    return;
+                }
 
-    useEffect(() => {
-        if (!endTime) return;
-
-        const timer = setInterval(() => {
-            const now = new Date().getTime();
-            const distance = endTime - now;
-
-            if (distance < 0) {
-                clearInterval(timer);
-                setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 });
-            } else {
                 setTimeLeft({
                     days: Math.floor(distance / (1000 * 60 * 60 * 24)),
                     hours: Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
                     minutes: Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60)),
                     seconds: Math.floor((distance % (1000 * 60)) / 1000)
                 });
-            }
-        }, 1000);
+            }, 1000);
 
-        return () => clearInterval(timer);
-    }, [endTime]);
+            return () => clearInterval(timer);
+        }
+    }, [presaleData]);
 
-    if (error) return <div className="text-red-500 p-6 text-center">{error}</div>;
-    if (!endTime) return <div className="text-gray-300 p-6 text-center">Loading presale information...</div>;
+    if (loading) return <div className="flex items-center justify-center h-full">Loading countdown...</div>;
+    if (error) return <div className="text-red-500 flex items-center justify-center h-full">{error}</div>;
 
-    return (
-        <div className="bg-gray-900 p-6 rounded-lg shadow-lg">
-            <h3 className="text-2xl font-bold mb-6 text-center text-white">
-                {presaleStatus === 'Not started' ? 'Presale Starts In:' :
-                    presaleStatus === 'Active' ? 'Presale Ends In:' :
-                        'Presale Ended'}
-            </h3>
-            {presaleStatus !== 'Ended' && (
-                <div className="grid grid-cols-4 gap-4">
+    const renderCountdown = () => {
+        if (presaleData.status === "Ended") {
+            return (
+                <div className="text-center">
+                    <h2 className="text-3xl font-bold text-primary mb-4">Presale Ended</h2>
+                    <p className="text-text-secondary">Thank you for your participation!</p>
+                </div>
+            );
+        }
+
+        const isNotStarted = presaleData.status === "Not started";
+
+        return (
+            <>
+                <h2 className="text-2xl font-bold mb-6 text-center text-primary">
+                    {isNotStarted ? "Presale Starts In" : "Presale Ends In"}
+                </h2>
+                <div className="grid grid-cols-4 gap-4 mb-6">
                     {Object.entries(timeLeft).map(([unit, value]) => (
                         <div key={unit} className="flex flex-col items-center">
-                            <div className="bg-gray-800 w-full aspect-square rounded-lg flex items-center justify-center mb-2">
-                                <span className="text-3xl font-bold text-green-500">{value.toString().padStart(2, '0')}</span>
+                            <div className="bg-background-dark w-full aspect-square rounded-lg flex items-center justify-center mb-2 shadow-inner">
+                                <span className="text-3xl font-bold text-primary">{value.toString().padStart(2, '0')}</span>
                             </div>
-                            <span className="text-sm uppercase text-gray-400">{unit}</span>
+                            <span className="text-sm uppercase text-text-secondary">{unit}</span>
                         </div>
                     ))}
                 </div>
-            )}
-        {/*    <div className="mt-6 text-center">*/}
-        {/*        <span className="text-gray-400 font-semibold">Status: </span>*/}
-        {/*        <span className={`font-bold ${*/}
-        {/*            presaleStatus === 'Active' ? 'text-green-500' :*/}
-        {/*                presaleStatus === 'Not started' ? 'text-yellow-500' :*/}
-        {/*                    'text-red-500'*/}
-        {/*        }`}>*/}
-        {/*  {presaleStatus}*/}
-        {/*</span>*/}
-        {/*    </div>*/}
+                <div className="text-center">
+                    <span className="text-text-secondary font-semibold">Status: </span>
+                    <span className={`font-bold ${
+                        presaleData.status === 'Active' ? 'text-green-500' :
+                            presaleData.status === 'Not started' ? 'text-yellow-500' :
+                                'text-red-500'
+                    }`}>
+                        {presaleData.status}
+                    </span>
+                </div>
+            </>
+        );
+    };
+
+    return (
+        <div className="bg-gradient-to-br from-background-light to-background-dark p-6 h-full flex flex-col justify-center">
+            {renderCountdown()}
         </div>
     );
 }

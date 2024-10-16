@@ -1,166 +1,120 @@
 // eslint-disable-next-line no-unused-vars
 import React, { useState, useEffect } from 'react';
 import { ethers } from 'ethers';
-import { contribute, getPresaleInfo, getPresaleStatus, getTokensSold } from '../utils/contractInteraction';
+import { usePresale } from '../contexts/PresaleContext';
+import { contribute, isCorrectNetwork, switchToCorrectNetwork } from '../utils/contractInteraction';
 
 function PresaleForm() {
     const [bnbAmount, setBnbAmount] = useState('');
     const [cafiAmount, setCafiAmount] = useState('');
-    const [presaleInfo, setPresaleInfo] = useState(null);
-    const [presaleStatus, setPresaleStatus] = useState('');
-    const [tokensSold, setTokensSold] = useState('0');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const { presaleData, refreshData } = usePresale();
 
     useEffect(() => {
-        fetchPresaleInfo();
-        const interval = setInterval(fetchPresaleInfo, 30000); // Refresh every 30 seconds
-        return () => clearInterval(interval);
-    }, []);
-
-    const fetchPresaleInfo = async () => {
-        try {
-            const [info, status, sold] = await Promise.all([
-                getPresaleInfo(),
-                getPresaleStatus(),
-                getTokensSold()
-            ]);
-            setPresaleInfo(info);
-            setPresaleStatus(status);
-            setTokensSold(sold);
-        } catch (error) {
-            console.error("Error fetching presale info:", error);
-            setError("Failed to fetch presale information. Please try again later.");
+        if (presaleData && presaleData.info && bnbAmount !== '') {
+            const tokens = parseFloat(bnbAmount) / parseFloat(presaleData.info.tokenPrice);
+            setCafiAmount(tokens.toFixed(2));
         }
-    };
+    }, [bnbAmount, presaleData]);
 
     const handleBnbAmountChange = (e) => {
-        const value = e.target.value;
-        setBnbAmount(value);
-        if (presaleInfo && value !== '') {
-            const tokens = parseFloat(value) / parseFloat(presaleInfo.tokenPrice);
-            setCafiAmount(tokens.toFixed(2));
-        } else {
-            setCafiAmount('');
-        }
-    };
-
-    const handleCafiAmountChange = (e) => {
-        const value = e.target.value;
-        setCafiAmount(value);
-        if (presaleInfo && value !== '') {
-            const bnb = parseFloat(value) * parseFloat(presaleInfo.tokenPrice);
-            setBnbAmount(bnb.toFixed(8));
-        } else {
-            setBnbAmount('');
-        }
+        setBnbAmount(e.target.value);
     };
 
     const handleContribute = async () => {
         setLoading(true);
         setError('');
         try {
+            if (!(await isCorrectNetwork())) {
+                const switched = await switchToCorrectNetwork();
+                if (!switched) {
+                    throw new Error("Please switch to the correct network to contribute");
+                }
+            }
+
             if (!bnbAmount || isNaN(parseFloat(bnbAmount))) {
                 throw new Error("Please enter a valid BNB amount.");
             }
-            if (parseFloat(bnbAmount) < parseFloat(presaleInfo.minContribution) || parseFloat(bnbAmount) > parseFloat(presaleInfo.maxContribution)) {
-                throw new Error(`Contribution amount must be between ${presaleInfo.minContribution} and ${presaleInfo.maxContribution} BNB`);
-            }
-            if (presaleStatus !== "Active") {
-                throw new Error(`Presale is not active. Current status: ${presaleStatus}`);
-            }
 
-            const remainingTokens = parseFloat(presaleInfo.hardCap) - parseFloat(tokensSold);
-            if (parseFloat(cafiAmount) > remainingTokens) {
-                throw new Error(`Contribution would exceed hard cap. Maximum contribution allowed: ${remainingTokens.toFixed(2)} CAFI`);
-            }
+            // Add other validations here...
 
             await contribute(bnbAmount);
             alert('Contribution successful!');
             setBnbAmount('');
             setCafiAmount('');
-            fetchPresaleInfo(); // Refresh presale info after contribution
+            refreshData();
         } catch (error) {
             console.error("Error contributing:", error);
-            if (error.message.includes("Hardcap reached")) {
-                setError("The presale hard cap has been reached. No more contributions are possible.");
-            } else {
-                setError(`Failed to contribute: ${error.message}`);
-            }
+            setError(error.message || "Failed to contribute. Please try again.");
         } finally {
             setLoading(false);
         }
     };
 
-    const isHardCapReached = parseFloat(tokensSold) >= parseFloat(presaleInfo?.hardCap || 0);
+    if (!presaleData || !presaleData.info) return null;
+
+    const isHardCapReached = parseFloat(presaleData.sold) >= parseFloat(presaleData.info.hardCap);
 
     return (
-        <div className="h-full flex flex-col bg-gray-900 p-8 rounded-lg shadow-lg">
-            <h2 className="text-2xl font-bold mb-6 text-white">Contribute to Presale</h2>
-            {error && <p className="text-red-500 mb-6">{error}</p>}
+        <div className="bg-gradient-to-br from-background-light to-background-dark p-6 h-full flex flex-col">
+            <h2 className="text-2xl font-bold mb-6 text-center text-primary">Contribute to Presale</h2>
+            {error && <p className="text-red-500 mb-4 text-center">{error}</p>}
 
-            <div className="mb-6">
-                <div className="flex items-center mb-3">
-                    <img src="/bnb-logo.png" alt="BNB" className="w-8 h-8 mr-3" />
-                    <span className="text-white text-lg font-medium">BNB</span>
-                </div>
-                <div className="bg-gray-800 rounded-lg p-4">
+            <div className="mb-4 flex-shrink-0">
+                <label htmlFor="bnb-amount" className="block text-sm font-medium text-text-secondary mb-2">BNB Amount</label>
+                <div className="flex items-center bg-background-dark rounded-md p-2">
                     <input
+                        id="bnb-amount"
                         type="number"
                         value={bnbAmount}
                         onChange={handleBnbAmountChange}
-                        className="bg-transparent text-white text-right text-xl w-full focus:outline-none"
+                        className="bg-transparent text-text-primary text-lg w-full focus:outline-none"
                         placeholder="0.00"
                         disabled={isHardCapReached}
                     />
+                    <span className="text-text-secondary ml-2">BNB</span>
                 </div>
             </div>
 
-            <div className="mb-8">
-                <div className="flex items-center mb-3">
-                    <img src="/cafi-logo.png" alt="CAFI" className="w-8 h-8 mr-3" />
-                    <span className="text-white text-lg font-medium">CAFI</span>
-                </div>
-                <div className="bg-gray-800 rounded-lg p-4">
+            <div className="mb-6 flex-shrink-0">
+                <label htmlFor="cafi-amount" className="block text-sm font-medium text-text-secondary mb-2">CAFI Amount</label>
+                <div className="flex items-center bg-background-dark rounded-md p-2">
                     <input
+                        id="cafi-amount"
                         type="number"
                         value={cafiAmount}
-                        onChange={handleCafiAmountChange}
-                        className="bg-transparent text-white text-right text-xl w-full focus:outline-none"
+                        className="bg-transparent text-text-primary text-lg w-full focus:outline-none"
                         placeholder="0.00"
-                        disabled={isHardCapReached}
+                        disabled
                     />
+                    <span className="text-text-secondary ml-2">CAFI</span>
                 </div>
             </div>
-
-            {presaleInfo && (
-                <div className="space-y-3 mb-8 text-sm">
-                    <div className="flex justify-between items-center">
-                        <span className="text-gray-400 text-lg">Token Price:</span>
-                        <span className="text-white text-lg font-semibold">1 BNB = {1 / parseFloat(presaleInfo.tokenPrice)} CAFI</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                        <span className="text-gray-400 text-lg">Min Contribution:</span>
-                        <span className="text-white text-lg font-semibold">{presaleInfo.minContribution} BNB</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                        <span className="text-gray-400 text-lg">Max Contribution:</span>
-                        <span className="text-white text-lg font-semibold">{presaleInfo.maxContribution} BNB</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                        <span className="text-gray-400 text-lg">Tokens Sold:</span>
-                        <span className="text-white text-lg font-semibold">{tokensSold} / {presaleInfo.hardCap} CAFI</span>
-                    </div>
-                </div>
-            )}
 
             <button
                 onClick={handleContribute}
-                disabled={loading || !bnbAmount || presaleStatus !== "Active" || isHardCapReached}
-                className={`mt-auto w-full bg-green-500 text-white py-4 px-6 rounded-md hover:bg-green-600 transition-colors font-semibold text-lg ${(loading || !bnbAmount || presaleStatus !== "Active" || isHardCapReached) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                disabled={loading || !bnbAmount || presaleData.status !== "Active" || isHardCapReached}
+                className={`w-full bg-primary text-white py-3 px-6 rounded-md hover:bg-opacity-90 transition-colors font-semibold text-lg mb-6 flex-shrink-0 ${(loading || !bnbAmount || presaleData.status !== "Active" || isHardCapReached) ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
                 {isHardCapReached ? 'Hard Cap Reached' : loading ? 'Processing...' : 'Contribute'}
             </button>
+
+            <div className="mt-auto space-y-2 text-sm">
+                <InfoItem label="Token Price" value={`1 BNB = ${1 / parseFloat(presaleData.info.tokenPrice)} CAFI`} />
+                <InfoItem label="Min Contribution" value={`${presaleData.info.minContribution} BNB`} />
+                <InfoItem label="Max Contribution" value={`${presaleData.info.maxContribution} BNB`} />
+                <InfoItem label="Tokens Sold" value={`${presaleData.sold} / ${presaleData.info.hardCap} CAFI`} />
+            </div>
+        </div>
+    );
+}
+
+function InfoItem({ label, value }) {
+    return (
+        <div className="flex justify-between items-center">
+            <span className="text-text-secondary">{label}:</span>
+            <span className="text-text-primary font-semibold">{value}</span>
         </div>
     );
 }

@@ -17,14 +17,31 @@ function ConnectWallet() {
             symbol: 'tBNB',
             decimals: 18
         },
-        rpcUrls: ['https://bsc-testnet-rpc.publicnode.com'],
+        rpcUrls: ['https://data-seed-prebsc-1-s2.binance.org:8545/'],
         blockExplorerUrls: ['https://testnet.bscscan.com']
     };
 
+    const getEthereumProvider = () => {
+        if (typeof window.ethereum !== 'undefined') {
+            return window.ethereum;
+        } else if (typeof window.web3 !== 'undefined') {
+            return window.web3.currentProvider;
+        } else if (typeof window.BinanceChain !== 'undefined') {
+            return window.BinanceChain;
+        } else {
+            return null;
+        }
+    };
+
     const switchToBscTestnet = async () => {
-        const { ethereum } = window;
+        const provider = getEthereumProvider();
+        if (!provider) {
+            setError('No wallet found. Please install MetaMask or use a Web3-enabled browser.');
+            return;
+        }
+
         try {
-            await ethereum.request({
+            await provider.request({
                 method: 'wallet_switchEthereumChain',
                 params: [{ chainId: BSC_TESTNET_CHAIN_ID }],
             });
@@ -32,7 +49,7 @@ function ConnectWallet() {
         } catch (switchError) {
             if (switchError.code === 4902) {
                 try {
-                    await ethereum.request({
+                    await provider.request({
                         method: 'wallet_addEthereumChain',
                         params: [BSC_TESTNET_PARAMS],
                     });
@@ -47,9 +64,10 @@ function ConnectWallet() {
     };
 
     const checkNetwork = async () => {
-        if (window.ethereum) {
+        const provider = getEthereumProvider();
+        if (provider) {
             try {
-                const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+                const chainId = await provider.request({ method: 'eth_chainId' });
                 setIsCorrectNetwork(chainId === BSC_TESTNET_CHAIN_ID);
             } catch (error) {
                 console.error("Failed to get network chain ID:", error);
@@ -59,30 +77,33 @@ function ConnectWallet() {
 
     const connectWallet = async () => {
         setError('');
-        if (typeof window.ethereum !== 'undefined') {
-            try {
-                const provider = new ethers.BrowserProvider(window.ethereum);
-                await provider.send("eth_requestAccounts", []);
-                const signer = await provider.getSigner();
-                const address = await signer.getAddress();
-                setAccount(address);
+        const provider = getEthereumProvider();
+        if (!provider) {
+            setError('No wallet found. Please install MetaMask or use a Web3-enabled browser.');
+            return;
+        }
 
-                await checkNetwork();
-            } catch (error) {
-                console.error("Failed to connect wallet:", error);
-                setError("Failed to connect wallet: " + error.message);
-            }
-        } else {
-            setError("Please install MetaMask!");
+        try {
+            await provider.request({ method: 'eth_requestAccounts' });
+            const ethersProvider = new ethers.BrowserProvider(provider);
+            const signer = await ethersProvider.getSigner();
+            const address = await signer.getAddress();
+            setAccount(address);
+
+            await checkNetwork();
+        } catch (error) {
+            console.error("Failed to connect wallet:", error);
+            setError("Failed to connect wallet: " + error.message);
         }
     };
 
     useEffect(() => {
         const checkConnection = async () => {
-            if (typeof window.ethereum !== 'undefined') {
-                const provider = new ethers.BrowserProvider(window.ethereum);
+            const provider = getEthereumProvider();
+            if (provider) {
                 try {
-                    const accounts = await provider.listAccounts();
+                    const ethersProvider = new ethers.BrowserProvider(provider);
+                    const accounts = await ethersProvider.listAccounts();
                     if (accounts.length > 0) {
                         setAccount(accounts[0].address);
                         await checkNetwork();
@@ -95,8 +116,9 @@ function ConnectWallet() {
 
         checkConnection();
 
-        if (window.ethereum) {
-            window.ethereum.on('accountsChanged', (accounts) => {
+        const provider = getEthereumProvider();
+        if (provider) {
+            provider.on('accountsChanged', (accounts) => {
                 if (accounts.length > 0) {
                     setAccount(accounts[0]);
                     checkNetwork();
@@ -106,15 +128,16 @@ function ConnectWallet() {
                 }
             });
 
-            window.ethereum.on('chainChanged', () => {
+            provider.on('chainChanged', () => {
                 checkNetwork();
             });
         }
 
         return () => {
-            if (window.ethereum) {
-                window.ethereum.removeListener('accountsChanged', () => {});
-                window.ethereum.removeListener('chainChanged', () => {});
+            const provider = getEthereumProvider();
+            if (provider && provider.removeListener) {
+                provider.removeListener('accountsChanged', () => {});
+                provider.removeListener('chainChanged', () => {});
             }
         };
     }, []);

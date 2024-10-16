@@ -5,22 +5,24 @@ import { FaXTwitter } from "react-icons/fa6";
 
 function Footer() {
     return (
-        <footer className="bg-gray-900 text-center p-6">
-            <div className="flex justify-center space-x-6 mb-4">
-                <a href="https://t.me/CarbonFiHQ" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors">
-                    <FaTelegram size={24} />
-                </a>
-                <a href="https://x.com/CarbonFiHQ" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors">
-                    <FaXTwitter size={24} />
-                </a>
-                <a href="https://discord.gg/CarbonFiHQ" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors">
-                    <FaDiscord size={24} />
-                </a>
-                <a href="https://youtube.com/@CarbonFiHQ" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors">
-                    <FaYoutube size={24} />
-                </a>
+        <footer className="bg-background-dark text-text-secondary py-8">
+            <div className="max-w-6xl mx-auto px-4">
+                <div className="flex justify-center space-x-8 mb-6">
+                    <a href="https://t.me/CarbonFiHQ" target="_blank" rel="noopener noreferrer" className="text-text-secondary hover:text-primary transition-colors duration-300">
+                        <FaTelegram size={28} />
+                    </a>
+                    <a href="https://x.com/CarbonFiHQ" target="_blank" rel="noopener noreferrer" className="text-text-secondary hover:text-primary transition-colors duration-300">
+                        <FaXTwitter size={28} />
+                    </a>
+                    <a href="https://discord.gg/CarbonFiHQ" target="_blank" rel="noopener noreferrer" className="text-text-secondary hover:text-primary transition-colors duration-300">
+                        <FaDiscord size={28} />
+                    </a>
+                    <a href="https://youtube.com/@CarbonFiHQ" target="_blank" rel="noopener noreferrer" className="text-text-secondary hover:text-primary transition-colors duration-300">
+                        <FaYoutube size={28} />
+                    </a>
+                </div>
+                <p className="text-center text-sm">&copy; 2024 CarbonFi. All rights reserved.</p>
             </div>
-            <p className="text-sm text-gray-400">&copy; 2024 CarbonFi. All rights reserved.</p>
         </footer>
     );
 }
