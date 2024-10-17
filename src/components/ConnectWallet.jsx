@@ -1,5 +1,5 @@
 // eslint-disable-next-line no-unused-vars
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { ethers } from 'ethers';
 
 function ConnectWallet() {
@@ -35,12 +35,22 @@ function ConnectWallet() {
         }
     };
 
+    const checkNetwork = useCallback(async () => {
+        const provider = getEthereumProvider();
+        if (provider) {
+            try {
+                const chainId = await provider.request({ method: 'eth_chainId' });
+                setIsCorrectNetwork(chainId === BSC_TESTNET_CHAIN_ID);
+            } catch (error) {
+                console.error("Failed to get network chain ID:", error);
+            }
+        }
+    }, [BSC_TESTNET_CHAIN_ID]);
+
     const openMobileWallet = () => {
         const dappUrl = window.location.href;
         const metamaskAppDeepLink = `https://metamask.app.link/dapp/${dappUrl}`;
         const trustWalletDeepLink = `https://link.trustwallet.com/open_url?coin_id=56&url=${dappUrl}`;
-
-        // You can add more wallet deep links here
 
         if (window.confirm("Please select a wallet to connect:")) {
             window.location.href = metamaskAppDeepLink;
@@ -75,18 +85,6 @@ function ConnectWallet() {
                 }
             } else {
                 setError('Failed to switch to BSC Testnet: ' + switchError.message);
-            }
-        }
-    };
-
-    const checkNetwork = async () => {
-        const provider = getEthereumProvider();
-        if (provider) {
-            try {
-                const chainId = await provider.request({ method: 'eth_chainId' });
-                setIsCorrectNetwork(chainId === BSC_TESTNET_CHAIN_ID);
-            } catch (error) {
-                console.error("Failed to get network chain ID:", error);
             }
         }
     };
@@ -139,7 +137,7 @@ function ConnectWallet() {
 
         const provider = getEthereumProvider();
         if (provider) {
-            provider.on('accountsChanged', (accounts) => {
+            const handleAccountsChanged = (accounts) => {
                 if (accounts.length > 0) {
                     setAccount(accounts[0]);
                     checkNetwork();
@@ -147,21 +145,23 @@ function ConnectWallet() {
                     setAccount('');
                     setIsCorrectNetwork(false);
                 }
-            });
+            };
 
-            provider.on('chainChanged', () => {
+            const handleChainChanged = () => {
                 checkNetwork();
-            });
-        }
+            };
 
-        return () => {
-            const provider = getEthereumProvider();
-            if (provider && provider.removeListener) {
-                provider.removeListener('accountsChanged', () => {});
-                provider.removeListener('chainChanged', () => {});
-            }
-        };
-    }, []);
+            provider.on('accountsChanged', handleAccountsChanged);
+            provider.on('chainChanged', handleChainChanged);
+
+            return () => {
+                if (provider.removeListener) {
+                    provider.removeListener('accountsChanged', handleAccountsChanged);
+                    provider.removeListener('chainChanged', handleChainChanged);
+                }
+            };
+        }
+    }, [checkNetwork]);
 
     return (
         <div className="bg-gray-800 p-4 rounded-lg mb-4">
