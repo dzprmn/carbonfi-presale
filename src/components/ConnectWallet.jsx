@@ -21,6 +21,8 @@ function ConnectWallet() {
         blockExplorerUrls: ['https://testnet.bscscan.com']
     };
 
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
     const getEthereumProvider = () => {
         if (typeof window.ethereum !== 'undefined') {
             return window.ethereum;
@@ -30,6 +32,20 @@ function ConnectWallet() {
             return window.BinanceChain;
         } else {
             return null;
+        }
+    };
+
+    const openMobileWallet = () => {
+        const dappUrl = window.location.href;
+        const metamaskAppDeepLink = `https://metamask.app.link/dapp/${dappUrl}`;
+        const trustWalletDeepLink = `https://link.trustwallet.com/open_url?coin_id=56&url=${dappUrl}`;
+
+        // You can add more wallet deep links here
+
+        if (window.confirm("Please select a wallet to connect:")) {
+            window.location.href = metamaskAppDeepLink;
+        } else {
+            window.location.href = trustWalletDeepLink;
         }
     };
 
@@ -77,6 +93,11 @@ function ConnectWallet() {
 
     const connectWallet = async () => {
         setError('');
+        if (isMobile) {
+            openMobileWallet();
+            return;
+        }
+
         const provider = getEthereumProvider();
         if (!provider) {
             setError('No wallet found. Please install MetaMask or use a Web3-enabled browser.');
