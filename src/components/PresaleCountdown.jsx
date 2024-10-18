@@ -10,6 +10,7 @@ function PresaleCountdown() {
         minutes: 0,
         seconds: 0
     });
+    const [startTime, setStartTime] = useState(null);
     const [endTime, setEndTime] = useState(null);
     const [presaleStatus, setPresaleStatus] = useState('');
     const [error, setError] = useState(null);
@@ -20,10 +21,11 @@ function PresaleCountdown() {
                 const info = await getPresaleInfo();
                 const status = await getPresaleStatus();
 
-                if (info && info.endTime) {
+                if (info && info.startTime && info.endTime) {
+                    setStartTime(parseInt(info.startTime) * 1000); // Convert to milliseconds
                     setEndTime(parseInt(info.endTime) * 1000); // Convert to milliseconds
                 } else {
-                    setError("Failed to fetch presale end time. Please try again later.");
+                    setError("Failed to fetch presale times. Please try again later.");
                 }
 
                 setPresaleStatus(status);
@@ -39,30 +41,39 @@ function PresaleCountdown() {
     }, []);
 
     useEffect(() => {
-        if (!endTime) return;
+        if (!startTime || !endTime) return;
 
         const timer = setInterval(() => {
             const now = new Date().getTime();
-            const distance = endTime - now;
+            let targetTime = presaleStatus === 'Not started' ? startTime : endTime;
+            const distance = targetTime - now;
 
             if (distance < 0) {
-                clearInterval(timer);
-                setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 });
-            } else {
-                setTimeLeft({
-                    days: Math.floor(distance / (1000 * 60 * 60 * 24)),
-                    hours: Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
-                    minutes: Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60)),
-                    seconds: Math.floor((distance % (1000 * 60)) / 1000)
-                });
+                if (presaleStatus === 'Not started' && now < endTime) {
+                    // Presale has just started, switch to counting down to end time
+                    setPresaleStatus('Active');
+                    targetTime = endTime;
+                } else {
+                    clearInterval(timer);
+                    setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+                    setPresaleStatus('Ended');
+                    return;
+                }
             }
+
+            setTimeLeft({
+                days: Math.floor(distance / (1000 * 60 * 60 * 24)),
+                hours: Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
+                minutes: Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60)),
+                seconds: Math.floor((distance % (1000 * 60)) / 1000)
+            });
         }, 1000);
 
         return () => clearInterval(timer);
-    }, [endTime]);
+    }, [startTime, endTime, presaleStatus]);
 
     if (error) return <div className="text-red-500 p-6 text-center">{error}</div>;
-    if (!endTime) return <div className="text-gray-300 p-6 text-center">Loading presale information...</div>;
+    if (!startTime || !endTime) return <div className="text-gray-300 p-6 text-center">Loading presale information...</div>;
 
     return (
         <div className="bg-gray-800 p-6 rounded-lg shadow-lg">
