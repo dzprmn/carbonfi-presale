@@ -25,38 +25,55 @@ function ConnectWallet() {
 
     const getEthereumProvider = () => {
         if (typeof window.ethereum !== 'undefined') {
-            return window.ethereum;
+            // Check for specific wallet providers
+            if (window.ethereum.isMetaMask) {
+                return { provider: window.ethereum, name: 'MetaMask' };
+            } else if (window.ethereum.isSafePal) {
+                return { provider: window.ethereum, name: 'SafePal' };
+            } else if (window.ethereum.isTrust) {
+                return { provider: window.ethereum, name: 'Trust Wallet' };
+            } else if (window.ethereum.isCoinbaseWallet) {
+                return { provider: window.ethereum, name: 'Coinbase Wallet' };
+            }
+            // Generic Ethereum provider
+            return { provider: window.ethereum, name: 'Ethereum Wallet' };
         } else if (typeof window.web3 !== 'undefined') {
-            return window.web3.currentProvider;
-        } else {
-            return null;
+            return { provider: window.web3.currentProvider, name: 'Legacy Web3' };
         }
+        return null;
     };
 
     const connectWallet = async () => {
         setError('');
-        const provider = getEthereumProvider();
+        const providerInfo = getEthereumProvider();
 
-        if (!provider) {
-            setError('No Ethereum wallet found. Please install MetaMask or use a Web3-enabled browser.');
+        if (!providerInfo) {
+            setError('No compatible wallet found. Please install MetaMask, SafePal, or use a Web3-enabled browser.');
             return;
         }
 
+        const { provider, name } = providerInfo;
+
         try {
+            // Enable the provider (for older wallets)
+            if (provider.enable) {
+                await provider.enable();
+            }
+
             const accounts = await provider.request({ method: 'eth_requestAccounts' });
             if (accounts.length === 0) {
                 throw new Error('No accounts found. Please unlock your wallet and try again.');
             }
             setAccount(accounts[0]);
-            await checkNetwork();
+            console.log(`Connected with ${name}`);
+            await checkNetwork(provider);
         } catch (error) {
             console.error("Failed to connect wallet:", error);
-            setError("Failed to connect wallet: " + (error.message || "Unknown error"));
+            setError(`Failed to connect ${name}: ${error.message || "Unknown error"}`);
         }
     };
 
-    const checkNetwork = async () => {
-        const provider = getEthereumProvider();
+    const checkNetwork = async (provider) => {
         if (provider) {
             try {
                 const chainId = await provider.request({ method: 'eth_chainId' });
@@ -69,11 +86,13 @@ function ConnectWallet() {
     };
 
     const switchNetwork = async () => {
-        const provider = getEthereumProvider();
-        if (!provider) {
-            setError('No Ethereum wallet found. Please install MetaMask or use a Web3-enabled browser.');
+        const providerInfo = getEthereumProvider();
+        if (!providerInfo) {
+            setError('No compatible wallet found. Please install MetaMask, SafePal, or use a Web3-enabled browser.');
             return;
         }
+
+        const { provider, name } = providerInfo;
 
         try {
             await provider.request({
@@ -90,10 +109,10 @@ function ConnectWallet() {
                     });
                     setIsCorrectNetwork(true);
                 } catch (addError) {
-                    setError('Failed to add BSC Testnet: ' + addError.message);
+                    setError(`Failed to add BSC Testnet to ${name}: ${addError.message}`);
                 }
             } else {
-                setError('Failed to switch to BSC Testnet: ' + switchError.message);
+                setError(`Failed to switch to BSC Testnet on ${name}: ${switchError.message}`);
             }
         }
     };
@@ -105,19 +124,21 @@ function ConnectWallet() {
     };
 
     useEffect(() => {
-        const provider = getEthereumProvider();
-        if (provider) {
+        const providerInfo = getEthereumProvider();
+        if (providerInfo) {
+            const { provider } = providerInfo;
+
             provider.on('accountsChanged', (accounts) => {
                 if (accounts.length > 0) {
                     setAccount(accounts[0]);
-                    checkNetwork();
+                    checkNetwork(provider);
                 } else {
                     disconnectWallet();
                 }
             });
 
             provider.on('chainChanged', () => {
-                checkNetwork();
+                checkNetwork(provider);
             });
 
             provider.on('disconnect', () => {
@@ -147,11 +168,11 @@ function ConnectWallet() {
 
     return (
         <div className="relative flex items-center h-full" ref={dropdownRef}>
-            {error && <p className="text-red-500 absolute top-0 left-0 right-0">{error}</p>}
+            {error && <p className="text-red-500 absolute top-0 left-0 right-0 text-sm">{error}</p>}
             {!account ? (
                 <button
                     onClick={connectWallet}
-                    className="bg-transparent text-primary border border-primary px-4 py-2 rounded hover:bg-primary hover:text-white transition-colors"
+                    className="bg-transparent text-primary border border-primary px-4 py-2 rounded hover:bg-primary hover:text-white transition-colors text-sm"
                 >
                     Connect Wallet
                 </button>
@@ -159,23 +180,23 @@ function ConnectWallet() {
                 <div className="relative w-full">
                     <button
                         onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                        className="bg-transparent text-primary border border-primary px-4 py-2 rounded hover:bg-primary hover:text-white transition-colors w-full text-left"
+                        className="bg-primary text-white border border-primary px-4 py-2 rounded transition-colors w-full text-left text-sm"
                     >
-                        Connected: {account.slice(0, 6)}...{account.slice(-4)}
+                        {account.slice(0, 6)}...{account.slice(-4)}
                     </button>
                     {isDropdownOpen && (
                         <div className="absolute right-0 mt-2 w-full bg-gray-700 rounded-md shadow-lg z-10">
                             {!isCorrectNetwork && (
                                 <button
                                     onClick={switchNetwork}
-                                    className="block w-full text-left px-4 py-2 text-sm text-white hover:bg-gray-600"
+                                    className="block w-full text-left px-4 py-2 text-xs text-white hover:bg-gray-600"
                                 >
                                     Switch to BSC Testnet
                                 </button>
                             )}
                             <button
                                 onClick={disconnectWallet}
-                                className="block w-full text-left px-4 py-2 text-sm text-white hover:bg-gray-600"
+                                className="block w-full text-left px-4 py-2 text-xs text-white hover:bg-gray-600"
                             >
                                 Disconnect Wallet
                             </button>
