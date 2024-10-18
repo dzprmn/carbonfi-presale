@@ -24,16 +24,44 @@ function ConnectWallet() {
     };
 
     const getEthereumProvider = () => {
+        console.log('Attempting to detect Ethereum provider...');
+
+        // Check for window.ethereum
         if (typeof window.ethereum !== 'undefined') {
-            console.log('window.ethereum is available');
+            console.log('window.ethereum detected');
             return { provider: window.ethereum, name: detectProviderName(window.ethereum) };
-        } else if (typeof window.web3 !== 'undefined') {
-            console.log('window.web3 is available');
-            return { provider: window.web3.currentProvider, name: 'Legacy Web3' };
-        } else if (window.SafePal && window.SafePal.ethereum) {
-            console.log('SafePal is available');
-            return { provider: window.SafePal.ethereum, name: 'SafePal' };
         }
+
+        // Check for window.web3
+        if (typeof window.web3 !== 'undefined') {
+            console.log('window.web3 detected');
+            return { provider: window.web3.currentProvider, name: 'Legacy Web3' };
+        }
+
+        // Check for specific wallet providers
+        const walletProviders = [
+            { check: () => window.SafePal && window.SafePal.ethereum, name: 'SafePal' },
+            { check: () => window.trustwallet && window.trustwallet.ethereum, name: 'Trust Wallet' },
+            { check: () => window.imToken && window.imToken.ethereum, name: 'imToken' },
+            { check: () => window.TPJSBrigeClient && window.TPJSBrigeClient.ethereum, name: 'TokenPocket' },
+            // Add more wallet-specific checks here
+        ];
+
+        for (const { check, name } of walletProviders) {
+            if (check()) {
+                console.log(`${name} detected`);
+                return { provider: check(), name };
+            }
+        }
+
+        // Check if we're in a mobile browser
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        if (isMobile) {
+            console.log('Mobile browser detected, but no specific wallet found');
+        } else {
+            console.log('Desktop browser detected, but no wallet found');
+        }
+
         console.log('No provider found');
         return null;
     };
@@ -50,10 +78,13 @@ function ConnectWallet() {
 
     const connectWallet = async () => {
         setError('');
+        console.log('Attempting to connect wallet...');
         const providerInfo = getEthereumProvider();
 
         if (!providerInfo) {
-            setError('No compatible wallet found. Please install a Web3 wallet or use a dApp browser.');
+            const errorMsg = 'No compatible wallet found. Please install a Web3 wallet or use a dApp browser.';
+            console.error(errorMsg);
+            setError(errorMsg);
             return;
         }
 
@@ -63,16 +94,20 @@ function ConnectWallet() {
         try {
             // For older wallets or mobile dApp browsers
             if (typeof provider.enable === 'function') {
+                console.log('Using provider.enable()');
                 await provider.enable();
             }
 
             // For newer wallets
+            console.log('Requesting accounts...');
             const accounts = await provider.request({ method: 'eth_requestAccounts' });
+            console.log('Accounts received:', accounts);
+
             if (accounts.length === 0) {
                 throw new Error('No accounts found. Please unlock your wallet and try again.');
             }
             setAccount(accounts[0]);
-            console.log(`Connected with ${name}`);
+            console.log(`Connected with ${name}. Account:`, accounts[0]);
             await checkNetwork(provider);
         } catch (error) {
             console.error("Failed to connect wallet:", error);
