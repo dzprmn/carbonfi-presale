@@ -1,3 +1,4 @@
+// eslint-disable-next-line no-unused-vars
 import React from 'react';
 import { PresaleProvider } from './contexts/PresaleContext';
 import Header from './components/Header';

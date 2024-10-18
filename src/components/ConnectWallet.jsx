@@ -214,11 +214,11 @@ function ConnectWallet() {
 
     return (
         <div className="relative flex items-center h-full" ref={dropdownRef}>
-            {error && <p className="text-red-500 absolute top-0 left-0 right-0 text-sm">{error}</p>}
+            {error && <p className="text-red-500 absolute top-0 left-0 right-0">{error}</p>}
             {!account ? (
                 <button
                     onClick={connectWallet}
-                    className="bg-transparent text-primary border border-primary px-4 py-2 rounded hover:bg-primary hover:text-white transition-colors text-sm"
+                    className="bg-transparent text-primary border border-primary px-4 py-2 rounded hover:bg-primary hover:text-white transition-colors"
                 >
                     Connect Wallet
                 </button>
@@ -226,23 +226,23 @@ function ConnectWallet() {
                 <div className="relative w-full">
                     <button
                         onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                        className="bg-transparent text-primary border border-primary px-4 py-2 rounded hover:bg-primary hover:text-white transition-colors w-full text-left text-sm"
+                        className="bg-transparent text-primary border border-primary px-4 py-2 rounded hover:bg-primary hover:text-white transition-colors w-full text-left"
                     >
-                        {account.slice(0, 4)}...{account.slice(-4)}
+                        Connected: {account.slice(0, 6)}...{account.slice(-4)}
                     </button>
                     {isDropdownOpen && (
                         <div className="absolute right-0 mt-2 w-full bg-gray-700 rounded-md shadow-lg z-10">
                             {!isCorrectNetwork && (
                                 <button
                                     onClick={switchNetwork}
-                                    className="block w-full text-left px-4 py-2 text-xs text-white hover:bg-gray-600"
+                                    className="block w-full text-left px-4 py-2 text-sm text-white hover:bg-gray-600"
                                 >
                                     Switch to BSC Testnet
                                 </button>
                             )}
                             <button
                                 onClick={disconnectWallet}
-                                className="block w-full text-left px-4 py-2 text-xs text-white hover:bg-gray-600"
+                                className="block w-full text-center px-4 py-2 text-sm text-white hover:bg-gray-600"
                             >
                                 Disconnect Wallet
                             </button>
