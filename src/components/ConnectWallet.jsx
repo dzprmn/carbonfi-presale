@@ -25,22 +25,27 @@ function ConnectWallet() {
 
     const getEthereumProvider = () => {
         if (typeof window.ethereum !== 'undefined') {
-            // Check for specific wallet providers
-            if (window.ethereum.isMetaMask) {
-                return { provider: window.ethereum, name: 'MetaMask' };
-            } else if (window.ethereum.isSafePal) {
-                return { provider: window.ethereum, name: 'SafePal' };
-            } else if (window.ethereum.isTrust) {
-                return { provider: window.ethereum, name: 'Trust Wallet' };
-            } else if (window.ethereum.isCoinbaseWallet) {
-                return { provider: window.ethereum, name: 'Coinbase Wallet' };
-            }
-            // Generic Ethereum provider
-            return { provider: window.ethereum, name: 'Ethereum Wallet' };
+            console.log('window.ethereum is available');
+            return { provider: window.ethereum, name: detectProviderName(window.ethereum) };
         } else if (typeof window.web3 !== 'undefined') {
+            console.log('window.web3 is available');
             return { provider: window.web3.currentProvider, name: 'Legacy Web3' };
+        } else if (window.SafePal && window.SafePal.ethereum) {
+            console.log('SafePal is available');
+            return { provider: window.SafePal.ethereum, name: 'SafePal' };
         }
+        console.log('No provider found');
         return null;
+    };
+
+    const detectProviderName = (provider) => {
+        if (provider.isMetaMask) return 'MetaMask';
+        if (provider.isSafePal) return 'SafePal';
+        if (provider.isTrust) return 'Trust Wallet';
+        if (provider.isCoinbaseWallet) return 'Coinbase Wallet';
+        if (provider.isTokenPocket) return 'TokenPocket';
+        // Add more wallet checks here
+        return 'Unknown Wallet';
     };
 
     const connectWallet = async () => {
@@ -48,18 +53,20 @@ function ConnectWallet() {
         const providerInfo = getEthereumProvider();
 
         if (!providerInfo) {
-            setError('No compatible wallet found. Please install MetaMask, SafePal, or use a Web3-enabled browser.');
+            setError('No compatible wallet found. Please install a Web3 wallet or use a dApp browser.');
             return;
         }
 
         const { provider, name } = providerInfo;
+        console.log(`Attempting to connect with ${name}`);
 
         try {
-            // Enable the provider (for older wallets)
-            if (provider.enable) {
+            // For older wallets or mobile dApp browsers
+            if (typeof provider.enable === 'function') {
                 await provider.enable();
             }
 
+            // For newer wallets
             const accounts = await provider.request({ method: 'eth_requestAccounts' });
             if (accounts.length === 0) {
                 throw new Error('No accounts found. Please unlock your wallet and try again.');
@@ -88,7 +95,7 @@ function ConnectWallet() {
     const switchNetwork = async () => {
         const providerInfo = getEthereumProvider();
         if (!providerInfo) {
-            setError('No compatible wallet found. Please install MetaMask, SafePal, or use a Web3-enabled browser.');
+            setError('No compatible wallet found. Please install a Web3 wallet or use a dApp browser.');
             return;
         }
 
@@ -128,27 +135,31 @@ function ConnectWallet() {
         if (providerInfo) {
             const { provider } = providerInfo;
 
-            provider.on('accountsChanged', (accounts) => {
+            const handleAccountsChanged = (accounts) => {
                 if (accounts.length > 0) {
                     setAccount(accounts[0]);
                     checkNetwork(provider);
                 } else {
                     disconnectWallet();
                 }
-            });
+            };
 
-            provider.on('chainChanged', () => {
+            const handleChainChanged = () => {
                 checkNetwork(provider);
-            });
+            };
 
-            provider.on('disconnect', () => {
+            const handleDisconnect = () => {
                 disconnectWallet();
-            });
+            };
+
+            provider.on('accountsChanged', handleAccountsChanged);
+            provider.on('chainChanged', handleChainChanged);
+            provider.on('disconnect', handleDisconnect);
 
             return () => {
-                provider.removeListener('accountsChanged', () => {});
-                provider.removeListener('chainChanged', () => {});
-                provider.removeListener('disconnect', () => {});
+                provider.removeListener('accountsChanged', handleAccountsChanged);
+                provider.removeListener('chainChanged', handleChainChanged);
+                provider.removeListener('disconnect', handleDisconnect);
             };
         }
     }, []);
@@ -180,9 +191,9 @@ function ConnectWallet() {
                 <div className="relative w-full">
                     <button
                         onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                        className="bg-primary text-white border border-primary px-4 py-2 rounded transition-colors w-full text-left text-sm"
+                        className="bg-transparent text-primary border border-primary px-4 py-2 rounded hover:bg-primary hover:text-white transition-colors w-full text-left text-sm"
                     >
-                        {account.slice(0, 6)}...{account.slice(-4)}
+                        {account.slice(0, 4)}...{account.slice(-4)}
                     </button>
                     {isDropdownOpen && (
                         <div className="absolute right-0 mt-2 w-full bg-gray-700 rounded-md shadow-lg z-10">
