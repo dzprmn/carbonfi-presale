@@ -23,99 +23,60 @@ function ConnectWallet() {
         blockExplorerUrls: ['https://testnet.bscscan.com']
     };
 
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
     const getEthereumProvider = () => {
-        console.log('Attempting to detect Ethereum provider...');
-
-        // Check for window.ethereum
         if (typeof window.ethereum !== 'undefined') {
-            console.log('window.ethereum detected');
-            return { provider: window.ethereum, name: detectProviderName(window.ethereum) };
-        }
-
-        // Check for window.web3
-        if (typeof window.web3 !== 'undefined') {
-            console.log('window.web3 detected');
-            return { provider: window.web3.currentProvider, name: 'Legacy Web3' };
-        }
-
-        // Check for specific wallet providers
-        const walletProviders = [
-            { check: () => window.SafePal && window.SafePal.ethereum, name: 'SafePal' },
-            { check: () => window.trustwallet && window.trustwallet.ethereum, name: 'Trust Wallet' },
-            { check: () => window.imToken && window.imToken.ethereum, name: 'imToken' },
-            { check: () => window.TPJSBrigeClient && window.TPJSBrigeClient.ethereum, name: 'TokenPocket' },
-            // Add more wallet-specific checks here
-        ];
-
-        for (const { check, name } of walletProviders) {
-            if (check()) {
-                console.log(`${name} detected`);
-                return { provider: check(), name };
-            }
-        }
-
-        // Check if we're in a mobile browser
-        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-        if (isMobile) {
-            console.log('Mobile browser detected, but no specific wallet found');
+            return window.ethereum;
+        } else if (typeof window.web3 !== 'undefined') {
+            return window.web3.currentProvider;
         } else {
-            console.log('Desktop browser detected, but no wallet found');
+            return null;
         }
-
-        console.log('No provider found');
-        return null;
-    };
-
-    const detectProviderName = (provider) => {
-        if (provider.isMetaMask) return 'MetaMask';
-        if (provider.isSafePal) return 'SafePal';
-        if (provider.isTrust) return 'Trust Wallet';
-        if (provider.isCoinbaseWallet) return 'Coinbase Wallet';
-        if (provider.isTokenPocket) return 'TokenPocket';
-        // Add more wallet checks here
-        return 'Unknown Wallet';
     };
 
     const connectWallet = async () => {
         setError('');
-        console.log('Attempting to connect wallet...');
-        const providerInfo = getEthereumProvider();
+        if (isMobile) {
+            openMobileWallet();
+        } else {
+            connectDesktopWallet();
+        }
+    };
 
-        if (!providerInfo) {
-            const errorMsg = 'No compatible wallet found. Please install a Web3 wallet or use a dApp browser.';
-            console.error(errorMsg);
-            setError(errorMsg);
+    const openMobileWallet = () => {
+        const dappUrl = encodeURIComponent(window.location.href);
+        const metamaskDeepLink = `https://metamask.app.link/dapp/${dappUrl}`;
+        const trustWalletDeepLink = `https://link.trustwallet.com/open_url?coin_id=56&url=${dappUrl}`;
+        const safePalDeepLink = `https://safepald.app/open/dapp?url=${dappUrl}`;
+        const coinbaseWalletDeepLink = `https://go.cb-w.com/dapp?cb_url=${dappUrl}`;
+
+        setIsDropdownOpen(true);
+        // The dropdown will now be shown with these deep links
+    };
+
+    const connectDesktopWallet = async () => {
+        const provider = getEthereumProvider();
+        if (!provider) {
+            setError('No Ethereum wallet found. Please install MetaMask or use a Web3-enabled browser.');
             return;
         }
 
-        const { provider, name } = providerInfo;
-        console.log(`Attempting to connect with ${name}`);
-
         try {
-            // For older wallets or mobile dApp browsers
-            if (typeof provider.enable === 'function') {
-                console.log('Using provider.enable()');
-                await provider.enable();
-            }
-
-            // For newer wallets
-            console.log('Requesting accounts...');
             const accounts = await provider.request({ method: 'eth_requestAccounts' });
-            console.log('Accounts received:', accounts);
-
             if (accounts.length === 0) {
                 throw new Error('No accounts found. Please unlock your wallet and try again.');
             }
             setAccount(accounts[0]);
-            console.log(`Connected with ${name}. Account:`, accounts[0]);
-            await checkNetwork(provider);
+            await checkNetwork();
         } catch (error) {
             console.error("Failed to connect wallet:", error);
-            setError(`Failed to connect ${name}: ${error.message || "Unknown error"}`);
+            setError("Failed to connect wallet: " + (error.message || "Unknown error"));
         }
     };
 
-    const checkNetwork = async (provider) => {
+    const checkNetwork = async () => {
+        const provider = getEthereumProvider();
         if (provider) {
             try {
                 const chainId = await provider.request({ method: 'eth_chainId' });
@@ -128,13 +89,11 @@ function ConnectWallet() {
     };
 
     const switchNetwork = async () => {
-        const providerInfo = getEthereumProvider();
-        if (!providerInfo) {
-            setError('No compatible wallet found. Please install a Web3 wallet or use a dApp browser.');
+        const provider = getEthereumProvider();
+        if (!provider) {
+            setError('No Ethereum wallet found. Please install MetaMask or use a Web3-enabled browser.');
             return;
         }
-
-        const { provider, name } = providerInfo;
 
         try {
             await provider.request({
@@ -151,10 +110,10 @@ function ConnectWallet() {
                     });
                     setIsCorrectNetwork(true);
                 } catch (addError) {
-                    setError(`Failed to add BSC Testnet to ${name}: ${addError.message}`);
+                    setError('Failed to add BSC Testnet: ' + addError.message);
                 }
             } else {
-                setError(`Failed to switch to BSC Testnet on ${name}: ${switchError.message}`);
+                setError('Failed to switch to BSC Testnet: ' + switchError.message);
             }
         }
     };
@@ -166,35 +125,29 @@ function ConnectWallet() {
     };
 
     useEffect(() => {
-        const providerInfo = getEthereumProvider();
-        if (providerInfo) {
-            const { provider } = providerInfo;
-
-            const handleAccountsChanged = (accounts) => {
+        const provider = getEthereumProvider();
+        if (provider) {
+            provider.on('accountsChanged', (accounts) => {
                 if (accounts.length > 0) {
                     setAccount(accounts[0]);
-                    checkNetwork(provider);
+                    checkNetwork();
                 } else {
                     disconnectWallet();
                 }
-            };
+            });
 
-            const handleChainChanged = () => {
-                checkNetwork(provider);
-            };
+            provider.on('chainChanged', () => {
+                checkNetwork();
+            });
 
-            const handleDisconnect = () => {
+            provider.on('disconnect', () => {
                 disconnectWallet();
-            };
-
-            provider.on('accountsChanged', handleAccountsChanged);
-            provider.on('chainChanged', handleChainChanged);
-            provider.on('disconnect', handleDisconnect);
+            });
 
             return () => {
-                provider.removeListener('accountsChanged', handleAccountsChanged);
-                provider.removeListener('chainChanged', handleChainChanged);
-                provider.removeListener('disconnect', handleDisconnect);
+                provider.removeListener('accountsChanged', () => {});
+                provider.removeListener('chainChanged', () => {});
+                provider.removeListener('disconnect', () => {});
             };
         }
     }, []);
@@ -217,7 +170,7 @@ function ConnectWallet() {
             {error && <p className="text-red-500 absolute top-0 left-0 right-0">{error}</p>}
             {!account ? (
                 <button
-                    onClick={connectWallet}
+                    onClick={isMobile ? openMobileWallet : connectDesktopWallet}
                     className="bg-transparent text-primary border border-primary px-4 py-2 rounded hover:bg-primary hover:text-white transition-colors"
                 >
                     Connect Wallet
@@ -248,6 +201,22 @@ function ConnectWallet() {
                             </button>
                         </div>
                     )}
+                </div>
+            )}
+            {isMobile && isDropdownOpen && (
+                <div className="absolute right-0 mt-2 w-full bg-gray-700 rounded-md shadow-lg z-10">
+                    <a href={`https://metamask.app.link/dapp/${encodeURIComponent(window.location.href)}`} className="block w-full text-left px-4 py-2 text-sm text-white hover:bg-gray-600">
+                        MetaMask
+                    </a>
+                    <a href={`https://link.trustwallet.com/open_url?coin_id=56&url=${encodeURIComponent(window.location.href)}`} className="block w-full text-left px-4 py-2 text-sm text-white hover:bg-gray-600">
+                        Trust Wallet
+                    </a>
+                    <a href={`https://safepald.app/open/dapp?url=${encodeURIComponent(window.location.href)}`} className="block w-full text-left px-4 py-2 text-sm text-white hover:bg-gray-600">
+                        SafePal Wallet
+                    </a>
+                    <a href={`https://go.cb-w.com/dapp?cb_url=${encodeURIComponent(window.location.href)}`} className="block w-full text-left px-4 py-2 text-sm text-white hover:bg-gray-600">
+                        Coinbase Wallet
+                    </a>
                 </div>
             )}
         </div>
