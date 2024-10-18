@@ -45,11 +45,12 @@ function ConnectWallet() {
     };
 
     const openMobileWallet = () => {
-        const dappUrl = encodeURIComponent(window.location.href);
+        const dappUrl = window.location.href.replace(/^https?:\/\//, '');
+
         const metamaskDeepLink = `https://metamask.app.link/dapp/${dappUrl}`;
-        const trustWalletDeepLink = `https://link.trustwallet.com/open_url?coin_id=56&url=${dappUrl}`;
-        const safePalDeepLink = `https://safepald.app/open/dapp?url=${dappUrl}`;
-        const coinbaseWalletDeepLink = `https://go.cb-w.com/dapp?cb_url=${dappUrl}`;
+        const trustWalletDeepLink = `https://link.trustwallet.com/open_url?coin_id=56&url=${encodeURIComponent(window.location.href)}`;
+        const safePalDeepLink = `https://safepald.app/open/dapp?url=${encodeURIComponent(window.location.href)}`;
+        const coinbaseWalletDeepLink = `https://go.cb-w.com/dapp?cb_url=${encodeURIComponent(window.location.href)}`;
 
         setIsDropdownOpen(true);
         // The dropdown will now be shown with these deep links
@@ -205,7 +206,7 @@ function ConnectWallet() {
             )}
             {isMobile && isDropdownOpen && (
                 <div className="absolute right-0 mt-2 w-full bg-gray-700 rounded-md shadow-lg z-10">
-                    <a href={`https://metamask.app.link/dapp/${encodeURIComponent(window.location.href)}`} className="block w-full text-left px-4 py-2 text-sm text-white hover:bg-gray-600">
+                    <a href={`https://metamask.app.link/dapp/${window.location.href.replace(/^https?:\/\//, '')}`} className="block w-full text-left px-4 py-2 text-sm text-white hover:bg-gray-600">
                         MetaMask
                     </a>
                     <a href={`https://link.trustwallet.com/open_url?coin_id=56&url=${encodeURIComponent(window.location.href)}`} className="block w-full text-left px-4 py-2 text-sm text-white hover:bg-gray-600">
