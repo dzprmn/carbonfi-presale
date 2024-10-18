@@ -15,31 +15,30 @@ function PresaleInfo() {
     };
 
     return (
-        <div className="bg-gradient-to-br from-background-light to-background-dark p-6 h-full flex flex-col">
-            <h2 className="text-2xl font-bold mb-6 text-center text-primary">Presale Information</h2>
+        <div className="p-6">
+            <h2 className="text-2xl font-bold mb-6 text-center text-green-400">Presale Information</h2>
 
-            <div className="mb-6 flex-shrink-0">
+            <div className="mb-6">
                 <div className="flex justify-between items-center mb-2">
-                    <span className="text-text-secondary">Progress</span>
-                    <span className="text-text-primary font-semibold">{sold} / {info.hardCap} CAFI</span>
+                    <span className="text-white font-semibold">Progress</span>
                 </div>
-                <div className="w-full bg-background-dark rounded-full h-4 overflow-hidden">
+                <div className="w-full bg-gray-700 rounded-full h-4 overflow-hidden">
                     <div
-                        className="bg-primary h-full rounded-full transition-all duration-500 ease-out"
+                        className="bg-green-400 h-full rounded-full transition-all duration-500 ease-out"
                         style={{ width: `${calculateProgress()}%` }}
                     ></div>
                 </div>
                 <div className="flex justify-between text-sm mt-2">
-                    <span className="text-text-secondary">Soft Cap: {info.softCap} CAFI</span>
-                    <span className="text-text-secondary">Hard Cap: {info.hardCap} CAFI</span>
+                    <span className="text-gray-400">Soft Cap: {info.softCap} CAFI</span>
+                    <span className="text-gray-400">Hard Cap: {info.hardCap} CAFI</span>
                 </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4 flex-grow">
+            <div className="space-y-4">
                 <InfoItem label="Token Price" value={`1 BNB = ${1 / parseFloat(info.tokenPrice)} CAFI`} />
                 <InfoItem label="Total Raised" value={`${totalRaised} BNB`} />
                 <InfoItem label="Tokens Sold" value={`${sold} CAFI`} />
-                <InfoItem label="Soft Cap Reached" value={softCap ? 'Yes' : 'No'} valueColor={softCap ? 'text-green-500' : 'text-red-500'} />
+                <InfoItem label="Soft Cap Reached" value={softCap ? 'Yes' : 'No'} valueColor={softCap ? 'text-green-400' : 'text-red-400'} />
                 <InfoItem label="Min Contribution" value={`${info.minContribution} BNB`} />
                 <InfoItem label="Max Contribution" value={`${info.maxContribution} BNB`} />
             </div>
@@ -47,10 +46,10 @@ function PresaleInfo() {
     );
 }
 
-function InfoItem({ label, value, valueColor = 'text-text-primary' }) {
+function InfoItem({ label, value, valueColor = 'text-white' }) {
     return (
-        <div className="flex flex-col">
-            <span className="text-text-secondary text-sm">{label}</span>
+        <div className="flex justify-between items-center">
+            <span className="text-gray-400">{label}:</span>
             <span className={`font-semibold ${valueColor}`}>{value}</span>
         </div>
     );

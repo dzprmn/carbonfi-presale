@@ -98,55 +98,39 @@ function ClaimWithdrawSection() {
     const isEligible = isSoftCapReached ? canClaimUserTokens : canWithdrawContribution;
 
     return (
-        <div className="bg-gradient-to-br from-background-light to-background-dark p-6 rounded-lg shadow-xl">
-            <h2 className="text-2xl font-bold mb-6 text-center text-primary">
+        <div className="p-6">
+            <h2 className="text-2xl font-bold mb-6 text-center text-green-400">
                 {isSoftCapReached ? "Claim Your Tokens" : "Withdraw Your Contribution"}
             </h2>
-            <div className="mb-6 text-center">
-                <p className="text-text-secondary">
-                    {isSoftCapReached
-                        ? "The presale has ended and the soft cap was reached. Eligible participants can now claim their tokens."
-                        : "The presale has ended and the soft cap was not reached. If you made a contribution, you can now withdraw it."}
-                </p>
-            </div>
+            <p className="text-gray-300 text-center mb-6">
+                {isSoftCapReached
+                    ? "The presale has ended and the soft cap was reached. Eligible participants can now claim their tokens."
+                    : "The presale has ended and the soft cap was not reached. If you made a contribution, you can now withdraw it."}
+            </p>
             {actionError && (
-                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-md mb-6" role="alert">
+                <div className="bg-red-900 border border-red-700 text-red-100 px-4 py-3 rounded-md mb-6" role="alert">
                     <strong className="font-bold">Error: </strong>
                     <span className="block sm:inline">{actionError}</span>
                 </div>
             )}
-            <div className="flex justify-center mb-6">
-                {!isWalletConnected ? (
-                    <button
-                        onClick={connectWallet}
-                        className="bg-primary text-white py-3 px-8 rounded-full hover:bg-opacity-90 transition-colors font-semibold text-lg"
-                    >
-                        Connect Wallet
-                    </button>
-                ) : (
-                    <button
-                        onClick={handleAction}
-                        disabled={actionLoading || !isEligible}
-                        className={`bg-primary text-white py-3 px-8 rounded-full hover:bg-opacity-90 transition-colors font-semibold text-lg ${
-                            (actionLoading || !isEligible)
-                                ? 'opacity-50 cursor-not-allowed'
-                                : ''
-                        }`}
-                    >
-                        {actionLoading ? 'Processing...' : isSoftCapReached ? 'Claim Tokens' : 'Withdraw Contribution'}
-                    </button>
-                )}
+            <div className="flex justify-center">
+                <button
+                    onClick={handleAction}
+                    disabled={actionLoading || !isEligible}
+                    className={`bg-green-500 text-white py-3 px-8 rounded-full hover:bg-green-600 transition-colors font-semibold text-lg ${
+                        (actionLoading || !isEligible)
+                            ? 'opacity-50 cursor-not-allowed'
+                            : ''
+                    }`}
+                >
+                    {actionLoading ? 'Processing...' : isSoftCapReached ? 'Claim Tokens' : 'Withdraw Contribution'}
+                </button>
             </div>
-            {isWalletConnected && !isEligible && (
-                <p className="text-yellow-500 text-center mb-6">
+            {!isEligible && (
+                <p className="text-yellow-400 text-center mt-4">
                     {isSoftCapReached
                         ? "You are not eligible to claim tokens. You may have already claimed or did not participate in the presale."
                         : "You don't have any contributions to withdraw."}
-                </p>
-            )}
-            {isWalletConnected && userAddress && (
-                <p className="text-text-secondary text-center text-sm">
-                    Connected Address: {userAddress.slice(0, 6)}...{userAddress.slice(-4)}
                 </p>
             )}
         </div>

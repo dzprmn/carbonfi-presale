@@ -191,3 +191,18 @@ function ConnectWallet() {
 }
 
 export default ConnectWallet;
+
+
+// import React from 'react';
+// import '@rainbow-me/rainbowkit/styles.css';
+// import { ConnectButton } from '@rainbow-me/rainbowkit';
+//
+// function ConnectWallet() {
+//     return (
+//         <div className="bg-gray-800 p-4 rounded-lg mb-4">
+//             <ConnectButton />
+//         </div>
+//     );
+// }
+//
+// export default ConnectWallet;
